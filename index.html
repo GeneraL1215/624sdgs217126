@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SDG15 生態守護遊戲 - 許群士</title>
+  <style>
+    body {
+      font-family: "Noto Sans TC", sans-serif;
+      margin: 0;
+      padding: 0;
+      background-image: url('https://img2-bs.511doc.com/mark/00/01/02/17/671fd8d36a489a27b77bf97f005b0ad9.jpg!/quality/90/unsharp/true/compress/true/fw/640/clip/640x500a0a0');
+      background-size: cover;
+      background-position: center;
+      color: #fff;
+    }
+    #game-container {
+      background-color: rgba(0,0,0,0.6);
+      padding: 20px;
+      margin: 30px auto;
+      max-width: 800px;
+      border-radius: 15px;
+      display: none;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    .question {
+      margin-top: 20px;
+    }
+    .options button {
+      margin: 5px;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 10px;
+      background-color: #4caf50;
+      color: white;
+      cursor: pointer;
+    }
+    .options button:hover {
+      background-color: #45a049;
+    }
+    #timer {
+      font-size: 18px;
+      text-align: right;
+      margin-bottom: 10px;
+    }
+    #author {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      font-weight: bold;
+      color: white;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 5px 10px;
+      border-radius: 10px;
+    }
+    #next-level {
+      display: none;
+      margin-top: 20px;
+      text-align: center;
+    }
+    #next-level button {
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 10px;
+      background-color: #2196F3;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    #intro-modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    #intro-box {
+      background: rgba(30,30,30,0.95);
+      padding: 30px;
+      border-radius: 20px;
+      text-align: center;
+      max-width: 500px;
+    }
+    #intro-box h2 {
+      margin-top: 0;
+    }
+    #start-button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #4caf50;
+      border: none;
+      color: white;
+      font-size: 18px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    #start-button:hover {
+      background-color: #43a047;
+    }
+  </style>
+</head>
+<body>
+  <div id="author">作者：許群士</div>
+
+  <div id="intro-modal">
+    <div id="intro-box">
+      <h2>任務說明：森林保衛戰</h2>
+      <p>你是森林守護者，需在 60 秒內完成任務！<br><br>共 8 題，答對至少 5 題即可過關。</p>
+      <button id="start-button" onclick="startGame()">開始作答</button>
+    </div>
+  </div>
+
+  <div id="game-container">
+    <h1>SDG15：保育陸域生態</h1>
+    <h2>第一關：森林保衛戰</h2>
+    <div id="timer">剩餘時間：<span id="time">60</span> 秒</div>
+    <div id="quiz"></div>
+    <div id="next-level">
+      <button onclick="goToNextLevel()">前往第二關</button>
+    </div>
+  </div>
+
+  <audio autoplay loop>
+    <source src="https://cdn.pixabay.com/audio/2023/03/05/audio_67603cf7d2.mp3" type="audio/mpeg">
+  </audio>
+
+  <script>
+    const allQuestions = [
+      { text: "森林砍伐對哪個生物最可能造成棲地喪失？", options: ["魚類", "老虎", "海豚", "水母"], answer: "老虎" },
+      { text: "哪一項行為有助於保護陸域生態？", options: ["使用免洗筷", "多搭大眾運輸", "排放廢水", "非法獵捕"], answer: "多搭大眾運輸" },
+      { text: "下列何者屬於外來種入侵？", options: ["綠鬣蜥", "台灣黑熊", "梅花鹿", "台灣獼猴"], answer: "綠鬣蜥" },
+      { text: "植樹造林的主要目的是？", options: ["增加垃圾", "吸收水源", "製造空氣污染", "減少土壤流失"], answer: "減少土壤流失" },
+      { text: "哪一項是森林的功能？", options: ["提供氧氣", "排放毒氣", "製造垃圾", "消耗能源"], answer: "提供氧氣" },
+      { text: "為什麼不能隨意放生外來物種？", options: ["太可愛了", "會威脅本土生態", "可以增加觀賞價值", "牠們會孤單"], answer: "會威脅本土生態" },
+      { text: "森林對氣候有什麼影響？", options: ["使地球變暖", "增加臭氧", "穩定氣候", "吸引颱風"], answer: "穩定氣候" },
+      { text: "哪種做法有助於森林保護？", options: ["盜伐林木", "回收紙張", "焚燒落葉", "濫墾濫伐"], answer: "回收紙張" }
+    ];
+
+    let currentIndex = 0;
+    let correctCount = 0;
+    let timeLeft = 60;
+    let timer;
+
+    function startGame() {
+      document.getElementById("intro-modal").style.display = "none";
+      document.getElementById("game-container").style.display = "block";
+      showQuestion();
+
+      timer = setInterval(() => {
+        timeLeft--;
+        document.getElementById("time").textContent = timeLeft;
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          document.getElementById("quiz").innerHTML = "<h3>時間到！你未完成任務，請再試一次。</h3>";
+        }
+      }, 1000);
+    }
+
+    function showQuestion() {
+      const q = allQuestions[currentIndex];
+      const quizDiv = document.getElementById("quiz");
+      quizDiv.innerHTML = `
+        <div class="question">
+          <h3>Q${currentIndex + 1}：${q.text}</h3>
+          <div class="options">
+            ${q.options.map(option => `<button onclick="checkAnswer('${option}')">${option}</button>`).join("")}
+          </div>
+        </div>
+      `;
+    }
+
+    function checkAnswer(selected) {
+      const q = allQuestions[currentIndex];
+      if (selected === q.answer) {
+        correctCount++;
+        alert("答對了！");
+      } else {
+        alert("答錯了！");
+      }
+      currentIndex++;
+      if (correctCount >= 5) {
+        clearInterval(timer);
+        document.getElementById("quiz").innerHTML = "<h3>恭喜！你已成功守護森林！</h3>";
+        document.getElementById("next-level").style.display = "block";
+      } else if (currentIndex < allQuestions.length) {
+        showQuestion();
+      } else {
+        clearInterval(timer);
+        document.getElementById("quiz").innerHTML = `<h3>結束！你答對 ${correctCount} 題。</h3>`;
+      }
+    }
+
+    function goToNextLevel() {
+      window.location.href = "level2.html";
+    }
+  </script>
+<!-- 音樂控制按鈕 -->
+<button id="music-toggle" onclick="toggleMusic()">🔊 暫停音樂</button>
+
+<!-- 背景音樂 -->
+<audio id="bg-music" autoplay loop>
+  <source src="elevator-music.mp3" type="audio/mpeg">
+  您的瀏覽器不支援音樂播放。
+</audio>
+
+</body>
+</html>
